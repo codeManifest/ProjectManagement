@@ -1,27 +1,49 @@
 # syntax=docker/dockerfile:1
 
-#Deriving the latest base image
-FROM node:16.17.0-bullseye-slim
+# ✅ Base image with Node and minimal system footprint
+FROM node:18-bullseye-slim
 
-# Any working directory can be chosen as per choice like '/' or '/home' etc
+# ✅ Set working directory
 WORKDIR /app
 
+# ✅ Copy environment file early (optional but fine)
 COPY .env.example .env
 
+# ✅ Copy all source files
 COPY . .
 
+# ✅ Install system dependencies
 RUN apt-get update -y && \
-    apt-get install -y --no-install-recommends software-properties-common gnupg2 wget && \
-    echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/sury-php.list && \
-    wget -qO - https://packages.sury.org/php/apt.gpg | apt-key add - && \
-    apt-get update -y && \
-    apt-get install -y --no-install-recommends php8.1 php8.1-curl php8.1-xml php8.1-zip php8.1-gd php8.1-mbstring php8.1-mysql && \
-    apt-get update -y && \
-    apt-get install -y composer && \
-    composer update && \
-    composer install && \
-    npm install && \
-    php artisan key:generate && \
-    rm -rf /var/lib/apt/lists/*
+    apt-get install -y --no-install-recommends \
+        software-properties-common \
+        gnupg2 \
+        wget \
+        unzip \
+        curl \
+        php-cli \
+        php-mbstring \
+        php8.1 \
+        php8.1-curl \
+        php8.1-xml \
+        php8.1-zip \
+        php8.1-gd \
+        php8.1-mbstring \
+        php8.1-mysql \
+        php8.1-bcmath && \
+    apt-get install -y composer
 
-CMD [ "bash", "./run.sh"]
+# ✅ Install PHP and JS dependencies
+RUN composer install && \
+    npm install
+
+# ✅ Run artisan setup commands
+RUN php artisan key:generate
+
+# ✅ Clean up to reduce image size
+RUN rm -rf /var/lib/apt/lists/*
+
+# ✅ Expose port if needed by Vite
+EXPOSE 8000 5173
+
+# ✅ Run your custom script
+CMD ["bash", "./run.sh"]
